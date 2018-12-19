@@ -9,4 +9,4 @@ into openHAB. Afterwards you have to create some files manually in your OH envir
   - epg.sitemap
   - epg.map
 
-Read more here: [link]
+Read more here: https://community.openhab.org/t/use-xmltv-with-openhab/60367
