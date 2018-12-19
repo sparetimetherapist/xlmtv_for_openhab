@@ -10,8 +10,6 @@ import java.io.File // You need to import this one for file-checking
 // 'xmltv' installed ('sudo apt-get install xmltv')
 // 'epg_parser.py' in OH script-directory
 // 
-// 'Kodi' Binding [OPTIONAL]
-// 'SamsungTV' Binding [OPTIONAL]
 // 'JS' Transformation (for easier duration-calculation) [OPTIONAL]
 // -------------------------------------------------------------
 //
