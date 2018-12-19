@@ -27,7 +27,7 @@ if [ $(id -u openhab > /dev/null 2>&1; echo $?)  == 0 ]
 then
     echo "User 'openhab exists - proceed...'" &> /dev/null
 else
-    echo -e "${RED}Error: ${NC}There is no user 'openhab' on your system. Use --help for further instructions."
+    echo -e "${RED}Error: ${NC}There is no user 'openhab' on your system. Abort."
     echo ""
     exit
 fi
@@ -35,10 +35,12 @@ fi
 echo -ne "Checking user privileges ${GREEN}[DONE]${NC} \n"
 
 # Updating system, install xmltv & get python-script from git
-echo -ne "Updating system and install xmltv... \r"
+echo -ne "Updating system, install xmltv & get python-script... \r"
 sudo apt-get update  &> /dev/null
 sudo apt-get install xmltv -y  &> /dev/null
-echo -ne "Updating system and install xmltv ${GREEN}[DONE]${NC} \n"
+sudo -u openhab wget https://raw.githubusercontent.com/sparetimetherapist/xlmtv_for_openhab/master/epg_parser.py -O /etc/openhab2/scripts/epg_parser.py &> /dev/null
+
+echo -ne "Updating system, install xmltv & get python-script ${GREEN}[DONE]${NC} \n"
 
 # Creating needed directories with user 'openhab'
 echo -ne "Creating directories... \r"
@@ -48,7 +50,7 @@ echo -ne "Creating directories ${GREEN}[DONE]${NC} \n"
 
 # Start configuring grabber
 echo -ne "Configuring grabber... \r"
-sudo printf 'http://xmltv.xmltv.se/channels.xml.gz\n/etc/openhab2/html/epg/data/tmp\nnone' | /usr/bin/tv_grab_eu_egon --configure --config-file /etc/openhab2/html/epg/conf/epg_eu.conf --quiet &> /dev/null
+sudo -u openhab printf 'http://xmltv.xmltv.se/channels.xml.gz\n/etc/openhab2/html/epg/data/tmp\nnone' | /usr/bin/tv_grab_eu_egon --configure --config-file /etc/openhab2/html/epg/conf/epg_eu.conf --quiet &> /dev/null
 echo -ne "Configuring grabber ${GREEN}[DONE]${NC} \n"
 
 # Checking local timezone
