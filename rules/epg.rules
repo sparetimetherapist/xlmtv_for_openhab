@@ -1,0 +1,301 @@
+/*  .___                              __          
+    |   | _____ ______   ____________/  |_  ______
+    |   |/     \\____ \ /  _ \_  __ \   __\/  ___/
+    |   |  Y Y  \  |_> >  <_> )  | \/|  |  \___ \ 
+    |___|__|_|  /   __/ \____/|__|   |__| /____  >
+              \/|__|                           \/ */
+
+import java.io.File // You need to import this one for file-checking
+
+
+/*  ____   ____            .__      ___.   .__                 
+    \   \ /   /____ _______|__|____ \_ |__ |  |   ____   ______
+     \   Y   /\__  \\_  __ \  \__  \ | __ \|  | _/ __ \ /  ___/
+      \     /  / __ \|  | \/  |/ __ \| \_\ \  |_\  ___/ \___ \ 
+       \___/  (____  /__|  |__(____  /___  /____/\___  >____  >
+                   \/              \/    \/          \/     \/ */
+
+// Meta
+val filename = "EPG.rules"
+val version = "0.2"
+
+// Define path-variables
+var readyPath = "/etc/openhab2/html/epg/data/tmp/.ready" 
+val xml_grabber = "tv_grab_eu_egon"
+val xmltvGrabberPath = "/usr/bin/tv_grab_eu_egon"
+val xmltvSplitPath = "/usr/bin/tv_split"
+val xmltvGrepPath = "/usr/bin/tv_grep"
+val epgConfigPath = "/etc/openhab2/html/epg/conf/epg_eu.conf"
+val xml_path = "/etc/openhab2/html/epg/"
+val data_path = "/etc/openhab2/html/epg/data/"
+val script_path = "/etc/openhab2/scripts/"
+val epgMap = "/etc/openhab2/transform/epg.map"
+val epgSourcePath = "/etc/openhab2/html/epg/data/epgsource.xml"
+val epgChannelsTmp = "/etc/openhab2/html/epg/data/tmp/lastupdate_channelstmp"
+val epgSourceByNowPath = "/etc/openhab2/html/epg/data/epgsource_bynow.xml"
+val epgChannelByNowPath = "/etc/openhab2/html/epg/data/%channel_bynow.xml"
+val epgChannelDatePath = "/etc/openhab2/html/epg/data/tmp/%channel.xml"
+
+
+/*   ____        ________        __                                                                 
+    /_   |      /  _____/  _____/  |_    ____ ______   ____  __________  __ _________   ____  ____  
+     |   |     /   \  ____/ __ \   __\ _/ __ \\____ \ / ___\/  ___/  _ \|  |  \_  __ \_/ ___\/ __ \ 
+     |   |     \    \_\  \  ___/|  |   \  ___/|  |_> > /_/  >___ (  <_> )  |  /|  | \/\  \__\  ___/ 
+     |___| /\   \______  /\___  >__|    \___  >   __/\___  /____  >____/|____/ |__|    \___  >___  >
+           \/          \/     \/            \/|__|  /_____/     \/                         \/    \/ */
+
+rule "EPG - Update 2-day forecast XMLTV-file"
+when
+    Time cron "0 3 0 * * ?" or // Execute every night at 3 o'clock...
+    Item EPG_Update received update 0 // ...or if another rule sends update '0' to 'EPG_Update'.
+then
+    try {
+/*                              _             _ _ _         
+         ___ ___ ___ ___ ___   | |_ ___ ___ _| | |_|___ ___ 
+        | -_|  _|  _| . |  _|  |   | .'|   | . | | |   | . |
+        |___|_| |_| |___|_|    |_|_|__,|_|_|___|_|_|_|_|_  |
+                                                       |___|  */
+
+        // Abort if selected xmltv-grabber isn´t installed or accessible.
+        val xmltvGrabber = new File(xmltvGrabberPath) 
+        if (xmltvGrabber.isFile() == false || xmltvGrabber.canRead() == false) {
+            logError("EPG","[EPG] XMLTV-grabber not found. Check your XMLTV install.")
+            return
+        }
+
+        // Abort if xmltv-config is missing.
+        val epgConfig = new File(epgConfigPath) 
+        if (epgConfig.isFile() == false || epgConfig.canRead() == false) {
+            logError("EPG","[EPG] No XMLTV config-file found. Configure XMLTV first with 'tv_grab_eu_egon --configure' (for EU channels)")
+            return
+        }
+
+        // Check if needed OH group & OH group-members exist.
+        if(gTVStopTime === null || gTVStopTime.members === null) { logError("EPG","[EPG] Group 'gTVStopTime' or its members are missing - abort.") return }
+        if(gEPGDuration === null || gEPGDuration.members === null) { logError("EPG","[EPG] Group 'gEPGDuration' or its members are missing - abort.") return }
+        if(gTVChannel === null || gTVChannel.members === null) { logError("EPG","[EPG] Group 'gTVChannel' or its members are missing - abort.") return }
+        if(gEPGCurrent === null || gEPGCurrent.members === null) { logError("EPG","[EPG] Group 'gEPGCurrent' or its members are missing - abort.") return }
+
+        // Check if 'epgsource.xml' is already available...
+        val epgSource = new File(epgSourcePath) 
+        if (epgSource.isFile() && epgSource.canRead()) {
+            val newdate = new DateTime(now().minusHours(24))
+            val filedate = new DateTime(epgSource.lastModified())
+
+            // ...and if it´s lastModified date is >24h
+            if(filedate.isBefore(newdate)) {
+                logInfo("EPG","[EPG] 'epgsource.xml' is available, but older than 24 hours. Starting update...")
+                executeCommandLine("sudo " + xmltvGrabberPath + " --config-file " + epgConfigPath + " --days 2 --quiet --output " + epgSourcePath, 10000)
+                sendCommand(EPG_Update, 1) // continue with rule step #2
+            }
+        } else {
+            // Execute if epgsource.xml can´t be found or accessed.
+            logInfo("EPG","[EPG] 1/3 - No EPG-Forecast found. Starting initial update...")
+            executeCommandLine("sudo " + xmltvGrabberPath + " --config-file " + epgConfigPath + " --days 2 --quiet --output " + epgSourcePath, 10000)
+            sendCommand(EPG_Update, 1) // continue with rule step #2
+        }
+
+
+/*       _     _ _   _     _              _     _       
+        |_|___|_| |_|_|___| |   _ _ ___ _| |___| |_ ___ 
+        | |   | |  _| | .'| |  | | | . | . | .'|  _| -_|
+        |_|_|_|_|_| |_|__,|_|  |___|  _|___|__,|_| |___|
+                                   |_|                   */
+
+        // Check for '.ready' status
+        val readySource = new File(readyPath)
+        if(readySource.isFile() && readySource.canRead()) { 
+            return
+        } else {
+
+            // Check for 'epgsource.xml' again & updating channel-xmls
+            if (epgSource.isFile() && epgSource.canRead()) {
+                logInfo("EPG","[EPG] 2/3 - Getting channel-xmls...")
+                executeCommandLine(xmltvSplitPath + " --output " + epgChannelDatePath + " " + epgSourcePath, 30000) // Updating channel-xmls
+                Thread::sleep(200) // Check if this sleep is needed... it seems like.
+
+                // Initial update for current running tv-shows
+                logInfo("EPG","[EPG] 3/3 - Grabbing current shows for all "+gEPGCurrent.members.length+" channels..." )
+
+                // Update all items with infos to current tv-show.
+                gEPGCurrent.members.forEach[ currentShow |
+                    var room = currentShow.name.split("_").get(0).toString+"_"
+                    var type = currentShow.name.split("_").get(1).toString+"_"
+                    var chan = currentShow.name.split("_").get(2).toString
+                    var channelId = transform("MAP", "epg.map", chan)
+                    
+                    // Sending update for currentShow to item...
+                    executeCommandLine("/usr/bin/tv_grep --on-after now --on-before now --output "+xml_path+"data/"+channelId.toString+"_now.xml "+xml_path+"data/tmp/"+channelId.toString+".xml", 30000)
+                    Thread::sleep(100)
+                    sendCommand(room+type+chan+"_CurrentShowContent", executeCommandLine("python /etc/openhab2/scripts/epg_parser.py -t "+xml_path+"data/"+channelId.toString+"_now.xml -c get_content", 15000).toString)
+                    Thread::sleep(200)
+
+                    // Sending update for currentShow to item...
+                    sendCommand(room+type+chan+"_CurrentShow", currentShow.state.toString.split("; ").get(2).toString)
+                    sendCommand(room+type+chan+"_CurrentShowSubtitle", currentShow.state.toString.split("; ").get(3).toString)
+                    sendCommand(room+type+chan+"_CurrentShowStartTime", currentShow.state.toString.split("; ").get(4).toString)
+                    sendCommand(room+type+chan+"_CurrentShowStopTime", currentShow.state.toString.split("; ").get(5).toString)
+                    sendCommand(room+type+chan+"_CurrentShowImage", currentShow.state.toString.split("; ").get(6).toString)
+                    sendCommand(room+type+chan+"_CurrentShowDetails", currentShow.state.toString.split("; ").get(7).toString)
+
+                    // Get update for channel_next xml and send update to items
+                    val stopTime = currentShow.state.toString.split("; ").get(5)
+
+                    // Update all items with infos to next tv-show.
+                    gEPGNext.members.filter[ nextShow | currentShow.name.split("_").get(2).toString == nextShow.name.split("_").get(2).toString ].forEach[ nextShow |
+                        
+                        // Get update for channel_next xml and send update to items
+                        executeCommandLine("/usr/bin/tv_grep --on-after "+stopTime.toString+" --on-before "+stopTime.toString+" --output "+xml_path+"data/"+channelId.toString+"_next.xml "+xml_path+"data/tmp/"+channelId.toString+".xml", 20000)
+                        Thread::sleep(100)
+                        sendCommand(room+type+chan+"_NextShowContent", executeCommandLine("python /etc/openhab2/scripts/epg_parser.py -t "+xml_path+"data/"+channelId.toString+"_next.xml -c get_content", 10000)) 
+                        Thread::sleep(200)
+
+                        // ...and sending update for nextShow to item
+                        sendCommand(room+type+chan+"_NextShow", nextShow.state.toString.split("; ").get(2).toString)
+                        sendCommand(room+type+chan+"_NextShowSubtitle", nextShow.state.toString.split("; ").get(3).toString)
+                        sendCommand(room+type+chan+"_NextShowStartTime", nextShow.state.toString.split("; ").get(4).toString)
+                        sendCommand(room+type+chan+"_NextShowStopTime", nextShow.state.toString.split("; ").get(5).toString)
+                        sendCommand(room+type+chan+"_NextShowImage", nextShow.state.toString.split("; ").get(6).toString)
+                        sendCommand(room+type+chan+"_NextShowDetails", nextShow.state.toString.split("; ").get(7).toString)
+                    ]
+                ]
+
+                // Final validation
+                executeCommandLine("touch "+xml_path+"data/tmp/.ready", 5000)
+
+            } else { 
+                logError("EPG","[EPG] Error in reading: "+epgSource+" - let´s try it again..." )
+                sendCommand(EPG_Update, 0) // ...return to rule #1.
+            }
+        }
+
+    } catch(Exception e) { 
+
+        // Error count
+        logError("EPG", "[EPG] Error in creating EPG source-file: " + e) 
+    } 
+end 
+
+
+
+/*           ___________                                          __           .__                   __              
+             \_   _____/______   ____  ________ __   ____   _____/  |_    ____ |  |__   ____   ____ |  | __          
+     ______   |    __) \_  __ \_/ __ \/ ____/  |  \_/ __ \ /    \   __\ _/ ___\|  |  \_/ __ \_/ ___\|  |/ /   ______ 
+    /_____/   |     \   |  | \/\  ___< <_|  |  |  /\  ___/|   |  \  |   \  \___|   Y  \  ___/\  \___|    <   /_____/ 
+              \___  /   |__|    \___  >__   |____/  \___  >___|  /__|    \___  >___|  /\___  >\___  >__|_ \          
+                  \/                \/   |__|           \/     \/            \/     \/     \/     \/     \/ every Minute */
+
+rule "EPG - Update duration timer / Check if an EPG update is needed "
+when
+    Time cron "0 0/1 * * * ?" // Execute every minute.
+then
+    try {
+/*                              _             _ _ _         
+         ___ ___ ___ ___ ___   | |_ ___ ___ _| | |_|___ ___ 
+        | -_|  _|  _| . |  _|  |   | .'|   | . | | |   | . |
+        |___|_| |_| |___|_|    |_|_|__,|_|_|___|_|_|_|_|_  |
+                                                       |___|  */
+
+        // Check again if 'epgsource.xml' is available, else go back to rule #1 and abort this one
+        val epgSource = new File(epgSourcePath) 
+        if (epgSource.isFile() == false && epgSource.canRead() == false) { 
+            executeCommandLine("rm "+xml_path+"data/tmp/.ready", 5000) // Delete .ready-trigger, to prevent running in endless error loop
+            sendCommand(EPG_Update, 0) // Go back to rule #1
+            return // Abort rule execution
+        }
+
+        // Wait for rule#1 to finish it´s stuff, before doing anything.
+        val readySource = new File(readyPath)
+        if(readySource.isFile() == false && readySource.canRead() == false) { return } else {
+
+/*                     _     _            _             _   _         
+             _ _ ___ _| |___| |_ ___    _| |_ _ ___ ___| |_|_|___ ___ 
+            | | | . | . | .'|  _| -_|  | . | | |  _| .'|  _| | . |   |
+            |___|  _|___|__,|_| |___|  |___|___|_| |__,|_| |_|___|_|_|
+                |_|                                                    */
+
+            // Update duration for all tv-shows
+            gTVStopTime.members.filter[ i | i.state != NULL ].forEach[ i | // For each item in group 'gTVStopTime' that aren´t NULL...
+                val oldDate = new DateTime((i.state as DateTimeType).calendar.timeInMillis).millis // ...extract stop-time of current show...
+                val newDate = new DateTime(now()).millis // ...and get the current time...
+                val duration = (((oldDate-newDate) / 1000) / 60) // ...to calculate the duration between now and the stop-time...
+                sendCommand(i.name.split("_").get(0).toString+"_"+i.name.split("_").get(1).toString+"_"+i.name.split("_").get(2).toString+"_CurrentShowDuration", duration.toString) // ...and sending all of that to each item in group.
+            ]
+
+/*                         _   _                _           _           _              _   _           
+             ___ ___ _____| |_|_|___ ___    ___| |_ ___ ___| |_ ___ ___| |_ ___ ___   | |_|_|_____ ___ 
+            |  _| . |     | . | |   | -_|  |_ -|  _| .'|  _|  _|___|_ -|  _| . | . |  |  _| |     | -_|
+            |___|___|_|_|_|___|_|_|_|___|  |___|_| |__,|_| |_|     |___|_| |___|  _|  |_| |_|_|_|_|___|
+                                                                               |_|                      */
+
+            // Building start-stop time string and send them as update to items (for all upcoming tv-shows that aren´t NULL)
+            gEPGNext.members.filter[ i | i.state != NULL ].forEach[ i |
+                sendCommand(i.name.split("_").get(0).toString+"_"+i.name.split("_").get(1).toString+"_"+i.name.split("_").get(2).toString+"_NextShowStartStop", (i.state.toString.split("; ").get(4).toString).split("T").get(1).toString+" - "+(i.state.toString.split("; ").get(5).toString).split("T").get(1).toString)
+            ]
+
+/*                     _     _                         _           
+             _ _ ___ _| |___| |_ ___    ___ ___    ___| |_ ___ ___ 
+            | | | . | . | .'|  _| -_|  | . |   |  |_ -|  _| . | . |
+            |___|  _|___|__,|_| |___|  |___|_|_|  |___|_| |___|  _|
+                |_|                                           |_|   */
+
+            // Only run this, if theres an tv-show update waiting...
+            val DateTime earliestStopTime = new DateTime((gTVStopTime.state as DateTimeType).calendar.timeInMillis)
+            if(now.isAfter(earliestStopTime)) {
+
+                // Initialize StringBuilder for channel-names
+                val StringBuilder channels = new StringBuilder
+
+                // Update all items with infos to current tv-show.
+                gEPGCurrent.members.filter[ currentShow |
+                    now.isAfter(new DateTime(currentShow.state.toString.split("; ").get(5)))
+                ].forEach[ currentShow |
+                    val room = currentShow.name.split("_").get(0).toString + "_"
+                    val type = currentShow.name.split("_").get(1).toString + "_"
+                    val chan = currentShow.name.split("_").get(2).toString
+                    val channelId = transform("MAP", "epg.map", chan)
+
+                    // Sending update for currentShow to item...
+                    executeCommandLine("/usr/bin/tv_grep --on-after now --on-before now --output "+xml_path+"data/"+channelId.toString+"_now.xml "+xml_path+"data/tmp/"+channelId.toString+".xml", 20000)
+                    Thread::sleep(100)
+                    sendCommand(room+type+chan+"_CurrentShowContent", executeCommandLine("python /etc/openhab2/scripts/epg_parser.py -t "+xml_path+"data/"+channelId.toString+"_now.xml -c get_content", 10000).toString)
+                    Thread::sleep(200)
+
+                    // Sending update for currentShow to item...
+                    sendCommand(room+type+chan+"_CurrentShow", currentShow.state.toString.split("; ").get(2).toString)
+                    sendCommand(room+type+chan+"_CurrentShowSubtitle", currentShow.state.toString.split("; ").get(3).toString)
+                    sendCommand(room+type+chan+"_CurrentShowStartTime", currentShow.state.toString.split("; ").get(4).toString)
+                    sendCommand(room+type+chan+"_CurrentShowStopTime", currentShow.state.toString.split("; ").get(5).toString)
+                    sendCommand(room+type+chan+"_CurrentShowImage", currentShow.state.toString.split("; ").get(6).toString)
+                    sendCommand(room+type+chan+"_CurrentShowDetails", currentShow.state.toString.split("; ").get(7).toString)
+                    channels.append(channelId.toString+", ")
+
+                    // Get update for channel_next xml and send update to items
+                    val stopTime = currentShow.state.toString.split("; ").get(5)
+
+                    gEPGNext.members.filter[ nextShow | currentShow.name.split("_").get(2).toString == nextShow.name.split("_").get(2).toString ].forEach[ nextShow |
+                        
+                        // Get update for channel_next xml and send update to items
+                        executeCommandLine("/usr/bin/tv_grep --on-after "+stopTime.toString+" --on-before "+stopTime.toString+" --output "+xml_path+"data/"+channelId.toString+"_next.xml "+xml_path+"data/tmp/"+channelId.toString+".xml", 20000)
+                        Thread::sleep(100)
+                        sendCommand(room+type+chan+"_NextShowContent", executeCommandLine("python /etc/openhab2/scripts/epg_parser.py -t "+xml_path+"data/"+channelId.toString+"_next.xml -c get_content", 10000)) 
+                        Thread::sleep(200)
+
+                        // ...and sending update for nextShow to item
+                        sendCommand(room+type+chan+"_NextShow", nextShow.state.toString.split("; ").get(2).toString)
+                        sendCommand(room+type+chan+"_NextShowSubtitle", nextShow.state.toString.split("; ").get(3).toString)
+                        sendCommand(room+type+chan+"_NextShowStartTime", nextShow.state.toString.split("; ").get(4).toString)
+                        sendCommand(room+type+chan+"_NextShowStopTime", nextShow.state.toString.split("; ").get(5).toString)
+                        sendCommand(room+type+chan+"_NextShowImage", nextShow.state.toString.split("; ").get(6).toString)
+                        sendCommand(room+type+chan+"_NextShowDetails", nextShow.state.toString.split("; ").get(7).toString)
+                    ]
+                ]
+
+                if(channels.length != 0) {
+                    logInfo("EPG", "[EPG] New update for channels: " + channels)
+                }
+            }
+        }
+
+    } catch(Exception e) { logError("EPG","[EPG] Error during frequent EPG-update: " + e ) }
+end

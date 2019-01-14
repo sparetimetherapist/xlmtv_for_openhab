@@ -1,0 +1,90 @@
+/*   _____                     
+    |   __|___ ___ _ _ ___ ___ 
+    |  |  |  _| . | | | . |_ -|
+    |_____|_| |___|___|  _|___|
+                      |_|       */
+
+Group                       gTVSwitchChannel
+Group                       gTVChannel
+Group:DateTime:EARLIEST     gTVStopTime
+Group                       gTVStartStop
+Group                       gEPGCurrent
+Group                       gEPGNext
+Group                       gEPGPrime
+Group                       gEPGDuration
+
+
+/*   _____ _     _       _ 
+    |   __| |___| |_ ___| |
+    |  |  | | . | . | .'| |
+    |_____|_|___|___|__,|_| */
+                       
+Number      EPG_Update                          "EPG update indicator"
+Number      EPG_TimeSelection                   "Was läuft?"                                                            <time>
+
+
+/*   _____ _                   _    ___   
+    |     | |_ ___ ___ ___ ___| |  |_  |  
+    |   --|   | .'|   |   | -_| |   _| |_ 
+    |_____|_|_|__,|_|_|_|_|___|_|  |_____| */
+
+String      TV_Channel_1_Name                               "Sender [%s]"                                                               (gTVChannel)
+String      TV_Channel_1_LogoURL
+
+String      TV_Channel_1_CurrentShowContent                 "Current [%s]"                                                              (gEPGCurrent)
+String      TV_Channel_1_NextShowContent                    "Next [%s]"                                                                 (gEPGNext)
+String      TV_Channel_1_PrimeShowContent                   "Prime [%s]"                                                                (gEPGPrime)
+
+String      TV_Channel_1_CurrentShow                        "Jetzt läuft [%s]"                                          <tv>
+String      TV_Channel_1_CurrentShowSubtitle                "Untertitel [%s]"
+String      TV_Channel_1_CurrentShowDetails                 "Details [%s]"
+DateTime    TV_Channel_1_CurrentShowStartTime               "Startzeit [%1$td.%1$tm.%1$tY - %1$tH:%1$tM Uhr]"
+DateTime    TV_Channel_1_CurrentShowStopTime                "Stopzeit [%1$td.%1$tm.%1$tY - %1$tH:%1$tM Uhr]"                            (gTVStopTime)
+String      TV_Channel_1_CurrentShowImage           
+Number      TV_Channel_1_CurrentShowDuration                "Verbleibende Zeit [JS(epg_duration.js):%s]"                                (gEPGDuration)
+
+String      TV_Channel_1_NextShow                           "Danach läuft [%s]"
+String      TV_Channel_1_NextShowSubtitle                   "Untertitel [%s]"
+String      TV_Channel_1_NextShowDetails                    "Land (Jahr) [%s]"
+DateTime    TV_Channel_1_NextShowStartTime                  "Startzeit [%1$td.%1$tm.%1$tY - %1$tH:%1$tM Uhr]"                           
+DateTime    TV_Channel_1_NextShowStopTime                   "Stopzeit [1$td.%1$tm.%1$tY - %1$tH:%1$tM Uhr]"
+String      TV_Channel_1_NextShowStartStop                  "Start / Ende [%s Uhr]"                                                     (gTVStartStop)
+String      TV_Channel_1_NextShowImage          
+
+// Kodi commands
+Switch      TV_Channel_1_Switch                             "Umschalten"                                                                (gTVSwitchChannel)
+/* ------------------- Channel #1 ------------------- */ 
+
+
+
+/*   _____ _                   _    ___ 
+    |     | |_ ___ ___ ___ ___| |  |_  |
+    |   --|   | .'|   |   | -_| |  |  _|
+    |_____|_|_|__,|_|_|_|_|___|_|  |___| */
+
+String      TV_Channel_2_Name                               "Sender [%s]"                                                               (gTVChannel)
+String      TV_Channel_2_LogoURL
+
+String      TV_Channel_2_CurrentShowContent                 "Current [%s]"                                                              (gEPGCurrent)
+String      TV_Channel_2_NextShowContent                    "Next [%s]"                                                                 (gEPGNext)
+String      TV_Channel_2_PrimeShowContent                   "Prime [%s]"                                                                (gEPGPrime)
+
+String      TV_Channel_2_CurrentShow                        "Jetzt läuft [%s]"                                          <tv>
+String      TV_Channel_2_CurrentShowSubtitle                "Untertitel [%s]"
+String      TV_Channel_2_CurrentShowDetails                 "Details [%s]"
+DateTime    TV_Channel_2_CurrentShowStartTime               "Startzeit [%1$td.%1$tm.%1$tY - %1$tH:%1$tM Uhr]"
+DateTime    TV_Channel_2_CurrentShowStopTime                "Stopzeit [%1$td.%1$tm.%1$tY - %1$tH:%1$tM Uhr]"                            (gTVStopTime)
+String      TV_Channel_2_CurrentShowImage           
+Number      TV_Channel_2_CurrentShowDuration                "Verbleibende Zeit [JS(epg_duration.js):%s]"                                (gEPGDuration)
+
+String      TV_Channel_2_NextShow                           "Danach läuft [%s]"
+String      TV_Channel_2_NextShowSubtitle                   "Untertitel [%s]"
+String      TV_Channel_2_NextShowDetails                    "Land (Jahr) [%s]"
+DateTime    TV_Channel_2_NextShowStartTime                  "Startzeit [%1$td.%1$tm.%1$tY - %1$tH:%1$tM Uhr]"                           
+DateTime    TV_Channel_2_NextShowStopTime                   "Stopzeit [1$td.%1$tm.%1$tY - %1$tH:%1$tM Uhr]"
+String      TV_Channel_2_NextShowStartStop                  "Start / Ende [%s Uhr]"                                                     (gTVStartStop)
+String      TV_Channel_2_NextShowImage          
+
+// Kodi commands
+Switch      TV_Channel_2_Switch                             "Umschalten"                                                                (gTVSwitchChannel)
+/* ------------------- Channel #2 ------------------- */ 

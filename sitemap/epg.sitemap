@@ -1,0 +1,62 @@
+sitemap epg label="EPG"
+{
+    Frame label="" {
+        Switch item=EPG_TimeSelection mappings=[0="Now", 1="Next"]
+        Text item=CurrentDate label="Datum [%1$tA, %1$tH:%1$tM Uhr]"
+    }
+
+    Frame label="Jetzt läuft" visibility=[EPG_TimeSelection==0] {
+        Text item=TV_Channel_1_CurrentShow label="Channel 1 [%s]" icon="tv_ard" {
+            Frame label="" {
+                Switch item=TV_Channel_1_Switch icon="screen" label="Office TV" mappings=[ON="Switch"]
+            }
+            Frame label="" {
+                Text item=TV_Channel_1_CurrentShow icon="tv_ard"
+                Text item=TV_Channel_1_CurrentShowDuration icon="time"
+                Image item=TV_Channel_1_CurrentShowImage
+                Text item=TV_Channel_1_CurrentShowSubtitle visibility=[TV_Channel_1_CurrentShowSubtitle!=""]
+                Text item=TV_Channel_1_CurrentShowDetails visibility=[TV_Channel_1_CurrentShowDetails!=""]
+            }
+        }
+
+        Text item=TV_Channel_2_CurrentShow label="ZDF [%s]"  icon="tv_zdf" {
+            Frame label="" {
+                Switch item=TV_Channel_2_Switch icon="screen" label="Office TV" mappings=[ON="Switch"]
+            }
+            Frame label="" {
+                Text item=TV_Channel_2_CurrentShow icon="tv_zdf"
+                Text item=TV_Channel_2_CurrentShowDuration icon="time"
+                Image item=TV_Channel_2_CurrentShowImage
+                Text item=TV_Channel_2_CurrentShowSubtitle visibility=[TV_Channel_2_CurrentShowSubtitle!=""]
+                Text item=TV_Channel_2_CurrentShowDetails visibility=[TV_Channel_2_CurrentShowDetails!=""]
+            }
+        }
+    }
+    Frame label="Danach läuft" visibility=[EPG_TimeSelection==1] {
+        Text item=TV_Channel_1_NextShow label="ARD [%s]" icon="tv_ard" {
+            Frame label="" {
+                Switch item=TV_Channel_1_Switch icon="screen" label="Office TV" mappings=[ON="Switch"]
+            }
+            Frame label="" {
+                Text item=TV_Channel_1_NextShow icon="tv_ard"
+                Text item=TV_Channel_1_NextShowStartStop icon="time"
+                Image item=TV_Channel_1_NextShowImage
+                Text item=TV_Channel_1_NextShowSubtitle visibility=[TV_Channel_1_NextShowSubtitle!=""]
+                Text item=TV_Channel_1_NextShowDetails visibility=[TV_Channel_1_NextShowDetails!=""]
+            }
+        }
+
+        Text item=TV_Channel_2_NextShow label="ZDF [%s]"  icon="tv_zdf" {
+            Frame label="" {
+                Switch item=TV_Channel_2_Switch icon="screen" label="Office TV" mappings=[ON="Switch"]
+            }
+            Frame label="" {
+                Text item=TV_Channel_2_NextShow icon="tv_zdf"
+                Text item=TV_Channel_2_NextShowStartStop icon="time"
+                Image item=TV_Channel_2_NextShowImage
+                Text item=TV_Channel_2_NextShowSubtitle visibility=[TV_Channel_2_NextShowSubtitle!=""]
+                Text item=TV_Channel_2_NextShowDetails visibility=[TV_Channel_2_NextShowDetails!=""]
+            }
+        }
+    }
+}
