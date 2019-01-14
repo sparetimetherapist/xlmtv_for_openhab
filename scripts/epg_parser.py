@@ -71,7 +71,7 @@ if args.command == cmd_get_content:
         for src in child.iter('icon'):
             channelUrl = src.attrib['src'] + "; "
             if channelUrl is None:
-                channelUrl = "https://chanlogos.digitalterrorist.de/123tv.png; "     
+                channelUrl = "http://chanlogos.xmltv.se/13thstreet.de.png; "     
     for child in root.iter('programme'): 
         # show-title
         for src in child.iter('title'):
@@ -99,7 +99,7 @@ if args.command == cmd_get_content:
     for child in root.iter('icon'):
         show_image = child.attrib['src']  + "; "
     if show_image is None:
-        show_image = "https://chanlogos.digitalterrorist.de/123tv.png; "
+        show_image = "http://chanlogos.xmltv.se/13thstreet.de.png; "
     # country
     for child in root.iter('country'):
         country = child.text + " | "
