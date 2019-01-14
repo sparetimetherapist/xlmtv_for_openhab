@@ -18,7 +18,7 @@ into openHAB. (tested on openHABianPi v1.4.1 with openHAB 2.5.0 (Build #1495) in
 2. Copy the files from this repository to your openHAB environment
   - \rules\epg.rules
   - \items\epg.items
-  - \sitempas\epg.sitemap
+  - \sitemaps\epg.sitemap
   - \transform\epg.map
   - \transform\epg_duration.js
   - \scripts\epg_parser.py
@@ -37,7 +37,7 @@ into openHAB. (tested on openHABianPi v1.4.1 with openHAB 2.5.0 (Build #1495) in
 6. Copy the files from this repository to your openHAB environment
   - \rules\epg.rules
   - \items\epg.items
-  - \sitempas\epg.sitemap
+  - \sitemaps\epg.sitemap
   - \transform\epg.map
   - \transform\epg_duration.js
   - \scripts\epg_parser.py
