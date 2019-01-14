@@ -37,6 +37,27 @@ val epgChannelByNowPath = "/etc/openhab2/html/epg/data/%channel_bynow.xml"
 val epgChannelDatePath = "/etc/openhab2/html/epg/data/tmp/%channel.xml"
 
 
+/*    _________               __                             __                 __             .___
+     /   _____/__.__. _______/  |_  ____   _____     _______/  |______ ________/  |_  ____   __| _/
+     \_____  <   |  |/  ___/\   __\/ __ \ /     \   /  ___/\   __\__  \\_  __ \   __\/ __ \ / __ | 
+     /        \___  |\___ \  |  | \  ___/|  Y Y  \  \___ \  |  |  / __ \|  | \/|  | \  ___// /_/ | 
+    /_______  / ____/____  > |__|  \___  >__|_|  / /____  > |__| (____  /__|   |__|  \___  >____ | 
+            \/\/         \/            \/      \/       \/            \/                 \/     \/  */
+
+rule "EPG - Refresh OH-items after system reboot if necessary"
+when
+    System started
+then
+    // Check if sitemap-items are up2date
+    if(gTVStopTime.state == NULL || gTVStopTime.state === null || gTVStopTime.state == "") {
+        logInfo("EPG","[EPG] Items should be updated...")
+        executeCommandLine("rm "+xml_path+"data/tmp/.ready", 5000)
+        executeCommandLine("rm "+xml_path+"data/epgsource.xml", 5000)
+        sendCommand(EPG_Update, 0)
+    } else { logInfo("EPG","[EPG] All items are up2date.") }
+end
+
+
 /*   ____        ________        __                                                                 
     /_   |      /  _____/  _____/  |_    ____ ______   ____  __________  __ _________   ____  ____  
      |   |     /   \  ____/ __ \   __\ _/ __ \\____ \ / ___\/  ___/  _ \|  |  \_  __ \_/ ___\/ __ \ 
@@ -86,13 +107,11 @@ then
             if(filedate.isBefore(newdate)) {
                 logInfo("EPG","[EPG] 'epgsource.xml' is available, but older than 24 hours. Starting update...")
                 executeCommandLine("sudo " + xmltvGrabberPath + " --config-file " + epgConfigPath + " --days 2 --quiet --output " + epgSourcePath, 10000)
-                sendCommand(EPG_Update, 1) // continue with rule step #2
             }
         } else {
             // Execute if epgsource.xml can´t be found or accessed.
-            logInfo("EPG","[EPG] 1/3 - No EPG-Forecast found. Starting initial update...")
+            logInfo("EPG","[EPG] No EPG-Forecast found. Starting initial update...")
             executeCommandLine("sudo " + xmltvGrabberPath + " --config-file " + epgConfigPath + " --days 2 --quiet --output " + epgSourcePath, 10000)
-            sendCommand(EPG_Update, 1) // continue with rule step #2
         }
 
 
@@ -110,12 +129,12 @@ then
 
             // Check for 'epgsource.xml' again & updating channel-xmls
             if (epgSource.isFile() && epgSource.canRead()) {
-                logInfo("EPG","[EPG] 2/3 - Getting channel-xmls...")
+                logInfo("EPG","[EPG] Getting channel-xmls...")
                 executeCommandLine(xmltvSplitPath + " --output " + epgChannelDatePath + " " + epgSourcePath, 30000) // Updating channel-xmls
                 Thread::sleep(200) // Check if this sleep is needed... it seems like.
 
                 // Initial update for current running tv-shows
-                logInfo("EPG","[EPG] 3/3 - Grabbing current shows for all "+gEPGCurrent.members.length+" channels..." )
+                logInfo("EPG","[EPG] Grabbing current shows for all "+gEPGCurrent.members.length+" channels..." )
 
                 // Update all items with infos to current tv-show.
                 gEPGCurrent.members.forEach[ currentShow |
