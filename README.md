@@ -7,7 +7,7 @@ into openHAB. (tested on openHABianPi v1.4.1 with openHAB 2.5.0 (Build #1495) in
 ## Prerequisites
 - **xmltv** (see http://wiki.xmltv.org/index.php/Main_Page for details)
 - **Python 2.7.x** (preinstalled on most systems)
-- **openHAB 2.x** with the following bindings/transformations installed to '/etc/openhab2/':
+- **openHAB 2.x** with the following bindings/transformations:
   - Exec Binding
   - NTP Binding
   - MAP Transformation
