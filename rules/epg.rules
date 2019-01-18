@@ -21,7 +21,6 @@ val version = "0.2"
 
 // Define path-variables
 var readyPath = "/etc/openhab2/html/epg/data/tmp/.ready" 
-val xml_grabber = "tv_grab_eu_egon"
 val xmltvGrabberPath = "/usr/bin/tv_grab_eu_egon"
 val xmltvSplitPath = "/usr/bin/tv_split"
 val xmltvGrepPath = "/usr/bin/tv_grep"
@@ -51,7 +50,7 @@ then
     // Check if sitemap-items are up2date
     if(gTVStopTime.state == NULL || gTVStopTime.state === null || gTVStopTime.state == "") {
         logInfo("EPG","[EPG] Items should be updated...")
-        executeCommandLine("rm "+xml_path+"data/tmp/.ready", 5000)
+        executeCommandLine("rm "+xml_path+"data/tmp/*", 5000)
         executeCommandLine("rm "+xml_path+"data/epgsource.xml", 5000)
         sendCommand(EPG_Update, 0)
     } else { logInfo("EPG","[EPG] All items are up2date.") }
@@ -106,12 +105,12 @@ then
             // ...and if it´s lastModified date is >24h
             if(filedate.isBefore(newdate)) {
                 logInfo("EPG","[EPG] 'epgsource.xml' is available, but older than 24 hours. Starting update...")
-                executeCommandLine("sudo " + xmltvGrabberPath + " --config-file " + epgConfigPath + " --days 2 --quiet --output " + epgSourcePath, 10000)
+                executeCommandLine(xmltvGrabberPath + " --config-file " + epgConfigPath + " --days 2 --quiet --output " + epgSourcePath, 10000)
             }
         } else {
             // Execute if epgsource.xml can´t be found or accessed.
             logInfo("EPG","[EPG] No EPG-Forecast found. Starting initial update...")
-            executeCommandLine("sudo " + xmltvGrabberPath + " --config-file " + epgConfigPath + " --days 2 --quiet --output " + epgSourcePath, 10000)
+            executeCommandLine(xmltvGrabberPath + " --config-file " + epgConfigPath + " --days 2 --quiet --output " + epgSourcePath, 10000)
         }
 
 
@@ -144,7 +143,7 @@ then
                     var channelId = transform("MAP", "epg.map", chan)
                     
                     // Sending update for currentShow to item...
-                    executeCommandLine("/usr/bin/tv_grep --on-after now --on-before now --output "+xml_path+"data/"+channelId.toString+"_now.xml "+xml_path+"data/tmp/"+channelId.toString+".xml", 30000)
+                    executeCommandLine(xmltvGrepPath+" --on-after now --on-before now --output "+xml_path+"data/"+channelId.toString+"_now.xml "+xml_path+"data/tmp/"+channelId.toString+".xml", 30000)
                     Thread::sleep(100)
                     sendCommand(room+type+chan+"_CurrentShowContent", executeCommandLine("python /etc/openhab2/scripts/epg_parser.py -t "+xml_path+"data/"+channelId.toString+"_now.xml -c get_content", 15000).toString)
                     Thread::sleep(200)
@@ -164,7 +163,7 @@ then
                     gEPGNext.members.filter[ nextShow | currentShow.name.split("_").get(2).toString == nextShow.name.split("_").get(2).toString ].forEach[ nextShow |
                         
                         // Get update for channel_next xml and send update to items
-                        executeCommandLine("/usr/bin/tv_grep --on-after "+stopTime.toString+" --on-before "+stopTime.toString+" --output "+xml_path+"data/"+channelId.toString+"_next.xml "+xml_path+"data/tmp/"+channelId.toString+".xml", 20000)
+                        executeCommandLine(xmltvGrepPath+" --on-after "+stopTime.toString+" --on-before "+stopTime.toString+" --output "+xml_path+"data/"+channelId.toString+"_next.xml "+xml_path+"data/tmp/"+channelId.toString+".xml", 20000)
                         Thread::sleep(100)
                         sendCommand(room+type+chan+"_NextShowContent", executeCommandLine("python /etc/openhab2/scripts/epg_parser.py -t "+xml_path+"data/"+channelId.toString+"_next.xml -c get_content", 10000)) 
                         Thread::sleep(200)
@@ -218,7 +217,7 @@ then
         // Check again if 'epgsource.xml' is available, else go back to rule #1 and abort this one
         val epgSource = new File(epgSourcePath) 
         if (epgSource.isFile() == false && epgSource.canRead() == false) { 
-            executeCommandLine("rm "+xml_path+"data/tmp/.ready", 5000) // Delete .ready-trigger, to prevent running in endless error loop
+            executeCommandLine("rm "+xml_path+"data/tmp/*", 5000) // Delete tmp-folder
             sendCommand(EPG_Update, 0) // Go back to rule #1
             return // Abort rule execution
         }
